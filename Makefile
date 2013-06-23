@@ -1,14 +1,15 @@
 CC=/opt/parallax/bin/propeller-elf-gcc
-DEPS=
-OBJ=bin/main.o
-CFLAGS=-m$(MODEL) -Wall -Os -m32bit-doubles -lm
 MODEL=lmm
+CFLAGS=-m$(MODEL) -Wall -Os -m32bit-doubles -lm -Iinclude
 
-bin/%.o: %.c $(DEPS)
-	$(CC) -c -o bin/$@ $< $(CFLAGS)
+all: bin/main.o bin/imu.o
+	$(CC) -o bin/main.elf $^ $(CFLAGS)
 
-Debug: $(OBJ)
-	$(CC) -o bin/Debug/main.elf $^ $(CFLAGS)
-
-cleanDebug:
+bin/main.o: src/main.c
+	$(CC) -c src/main.c -o bin/main.o $(CFLAGS)
+	
+bin/imu.o: src/imu.c
+	$(CC) -c src/imu.c -o bin/imu.o $(CFLAGS)
+	
+clean:
 	rm -f bin/Debug/*.o bin/Debug/*.elf
