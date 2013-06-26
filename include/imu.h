@@ -7,8 +7,8 @@
 //starting with a value of  0.01 .. 0.05 will work for most sensors
 
 #define ACC_WEIGHT 0.01		//accelerometer data weight relative to gyro's weight of 1
-#define ACC_ERR_MAX 0.3		//maximum accelerometer errror relative to 1g , when error exceeds this value accelerometer weight becomes 0
-//this helps reject external accelerations (non-gravitational innertial forces caused by device acceleration)
+#define ACC_ERR_MAX 0.3		//maximum accelerometer error relative to 1g , when error exceeds this value accelerometer weight becomes 0
+//this helps reject external accelerations (non-gravitational inertial forces caused by device acceleration)
 #define MAG_WEIGHT 0.0		//magnetometer data weight relative to gyro's weight of 1
 #define MAG_ERR_MAX 0.3		//maximum magnetometer error relative to normal value of 1 (corresponding to earth's magnetic field)
 //when error exceeds this value magnetometer weight becomes 0
@@ -16,6 +16,7 @@
 
 typedef long time_ms;
 
-void imu_update(time_ms time);
+void imu_update(time_ms time, float accelerometer[], float magnetometer[],
+		float gyrometer[]);
 
 #endif

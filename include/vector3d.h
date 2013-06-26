@@ -1,6 +1,8 @@
 #ifndef VECTOR3D__H
 #define VECTOR3D__H
 
+#include <math.h>
+
 //get modulus of a 3d vector sqrt(x^2+y^2+y^2)
 float vector3d_modulus(float* vector)
 {

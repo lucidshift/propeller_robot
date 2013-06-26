@@ -18,7 +18,7 @@ void imu_update(time_ms time, float accelerometer[], float magnetometer[],
 		float gyrometer[])
 {
 	float Imag[3]; //I(b) vector according to magnetometer in body's coordinates
-	time_ms elapsed_time = time - previous_time;
+	float elapsed_time = (time - previous_time)/1000;
 	int i;
 
 	//---------------
@@ -30,7 +30,7 @@ void imu_update(time_ms time, float accelerometer[], float magnetometer[],
 	//			[K.i , K.j, K.k]
 
 	//---------------
-	//Acelerometer
+	//Accelerometer
 	//---------------
 	//Accelerometer measures gravity vector G in body coordinate system
 	//Gravity vector is the reverse of K unity vector of global system expressed in local coordinates
@@ -45,7 +45,7 @@ void imu_update(time_ms time, float accelerometer[], float magnetometer[],
 	//Magnetometer
 	//---------------
 	//calculate correction vector to bring dcmEst's I vector closer to Mag vector (I vector according to magnetometer)
-	//in the absense of magnetometer let's assume North vector (I) is always in XZ plane of the device (y coordinate is 0)
+	//in the absence of magnetometer let's assume North vector (I) is always in XZ plane of the device (y coordinate is 0)
 	Imag[0] = sqrt(1 - dcmEst[0][2] * dcmEst[0][2]);
 	Imag[1] = 0;
 	Imag[2] = dcmEst[0][2];
@@ -61,14 +61,13 @@ void imu_update(time_ms time, float accelerometer[], float magnetometer[],
 
 	for (i = 0; i < 3; i++)
 	{
-		gyrometer *= elapsed_time; //scale by elapsed time to get angle in radians
+		gyrometer[i] *= elapsed_time; //scale by elapsed time to get angle in radians
 		//compute weighted average with the accelerometer correction vector
-		gyrometer = (gyrometer + ACC_WEIGHT * wA[i] + MAG_WEIGHT * magnetometer)
+		gyrometer[i] = (gyrometer[i] + ACC_WEIGHT * wA[i] + MAG_WEIGHT * magnetometer[i])
 				/ (1.0 + ACC_WEIGHT + MAG_WEIGHT);
 	}
 
 	dcm_rotate(dcmEst, gyrometer);
-
 }
 
 //rotate DCM matrix by a small rotation given by angular rotation vector w
