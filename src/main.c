@@ -3,27 +3,47 @@
 #include <i2c.h>
 
 #define SCL_PIN 28
+#define SDA_PIN 29
 #define COMP_ADR 0x3C
 #define ACC_ADR 0xA6
 #define GYRO_ADR 0xD0
 
-I2C *dev;
+static void printVectorLine(char* name, int16_t *arr);
+static void setupSensors();
+static void readSensors();
+static int16_t convert(uint8_t *raw);
+
+I2C_COGDRIVER *driver;
 int16_t *comp, *acc, *gyro;
 
 int main(int args, char *argv[], char *environ[])
 {
+	driver = (I2C_COGDRIVER*) malloc(sizeof(I2C_COGDRIVER));
+	i2cOpen(driver, SCL_PIN, SDA_PIN, 100000);
+
 	comp = (int16_t*) malloc(3 * sizeof(int16_t));
 	acc = (int16_t*) malloc(3 * sizeof(int16_t));
 	gyro = (int16_t*) malloc(3 * sizeof(int16_t));
 
+	setupSensors();
+	
 	while (1)
 	{
-		printf("hello\n");
+		readSensors();
+
+		printVectorLine("compass", comp);
+		printVectorLine("accelerometer", acc);
+		printVectorLine("gyrometer", gyro);
 	}
 	return 0;
 }
 
-static void setup_sensors()
+static void printVectorLine(char* name, int16_t *arr)
+{
+	printf("%-*s: <%d, %d, %d>\n", 15, name, arr[0], arr[1], arr[2]);
+}
+
+static void setupSensors()
 {
 	uint8_t out[4];
 
@@ -37,7 +57,7 @@ static void setup_sensors()
 	out[2] = 0x00; //range of +/- 0.88Ga
 
 	//write 3 bytes to the compass
-	i2cWrite(dev, COMP_ADR, out, 3, 1);
+	i2cWrite(&driver->i2c, COMP_ADR, out, 3, 1);
 
 	//Setup Accelerometer
 
@@ -47,9 +67,9 @@ static void setup_sensors()
 	out[3] = 0x08; //set to measure
 
 	// write first 2 bytes to the accelerometer
-	i2cWrite(dev, ACC_ADR, out, 2, 1);
+	i2cWrite(&driver->i2c, ACC_ADR, out, 2, 1);
 	// write next 2 bytes to the accelerometer
-	i2cWrite(dev, ACC_ADR, &out[2], 2, 1);
+	i2cWrite(&driver->i2c, ACC_ADR, &out[2], 2, 1);
 
 	//Setup Gyro
 
@@ -59,9 +79,13 @@ static void setup_sensors()
 	out[2] = 0x1a;
 
 	//write 3 bytes to the gyro
-	i2cWrite(dev, GYRO_ADR, out, 3, 1);
+	i2cWrite(&driver->i2c, GYRO_ADR, out, 3, 1);
 }
 
+/*
+ * The processor is little-endian. This converts big-endian bytes to little-endian
+ * and packages the result in a two-byte-long integer.
+ */
 static int16_t convert(uint8_t *raw)
 {
 	uint8_t temp[2];
@@ -71,10 +95,11 @@ static int16_t convert(uint8_t *raw)
 	return (int16_t) temp[0];
 }
 
-static void read_sensors()
+static void readSensors()
 {
 	uint8_t out[10];
 	uint8_t in[6];
+	int i;
 
 	//Read Compass
 	//Prep for 1 pass measurement
@@ -85,82 +110,46 @@ static void read_sensors()
 	//register value automatically incremented to 0x03
 
 	//write 2 bytes to the compass
-	i2cWrite(dev, COMP_ADR, out, 2, 1);
-	i2cRead(dev, COMP_ADR, in, 6, 1);
+	//TODO: see if the write (and others) can be done without stop
+	i2cWrite(&driver->i2c, COMP_ADR, out, 2, 1);
+	i2cRead(&driver->i2c, COMP_ADR, in, 6, 1);
 
+	/*
+	 * The compass stores values in big-endian and in xzy order.
+	 * Conversions must be done.
+	 */
 	comp[0] = convert(in); //x
 	comp[1] = convert(&in[4]); //y
 	comp[2] = convert(&in[2]); //z
 
-	i2c.Start(SCL)
-	i2c.Write(scl_pin, comp)
-	i2c.Write(scl_pin, $02)
-	i2c.Write(scl_pin, $01)
-	i2c.Stop(scl_pin)
-	//Measure
-	i2c.Start(SCL)
-	i2c.Write(scl_pin, comp)
-	i2c.Write(scl_pin, $03)
-	i2c.Start(scl_pin)
-	i2c.Write(scl_pin, $3D)
-CX := i2c.Read(scl_pin, 0)
-CX <-= 8
-CX := CX + i2c.Read(scl_pin, 0)
-CY := i2c.Read(scl_pin, 0)
-CY <-= 8
-CY := CY + i2c.Read(scl_pin, 0)
-CZ := i2c.Read(scl_pin, 0)
-CZ <-= 8
-CZ := CZ + i2c.Read(scl_pin, 1) //Final ACK bit set to 1, end read cycle
-i2c.Stop(SCL)
+	//Read Accelerometer
 
-CompX := CX
-CompY := CY
-CompZ := CZ
+	out[0] = 0x32; //first data register
 
-//Read Accelerometer
-i2c.Start(SCL)
-i2c.Write(scl_pin, accelerometer_address)
-i2c.Write(scl_pin, $32)
+	i2cWrite(&driver->i2c, ACC_ADR, out, 1, 1);
+	i2cRead(&driver->i2c, ACC_ADR, in, 6, 1);
 
-i2c.Start(scl_pin)
-i2c.Write(scl_pin, $A7)
-WorkVar := i2c.Read(scl_pin, 0)
-WorkVar <-= 8
-AX := WorkVar + i2c.Read(scl_pin, 0)
-WorkVar := i2c.Read(scl_pin, 0)
-WorkVar <-= 8
-AY := WorkVar + i2c.Read(scl_pin, 0)
-WorkVar := i2c.Read(scl_pin, 0)
-WorkVar <-= 8
-AZ := WorkVar + i2c.Read(scl_pin, 1)//Final ACK bit set to 1, end read cycle
-i2c.Stop(SCL)
+	/*
+	 * The accelerometer stores values in little-endian and xyz order.
+	 * No conversions need to be done.
+	 */
+	for (i = 0; i < 3; i++)
+	{
+		acc[i] = (int8_t) in[2 * i];
+	}
 
-AccX := AX
-AccY := AY
-AccZ := AZ
+	//Read Gyro
 
-//Read gyro_address
-i2c.Start(SCL)
-i2c.Write(scl_pin, Gyro)
-i2c.Write(scl_pin, $1D)
-i2c.Stop(scl_pin)
+	out[0] = 0x1d; //first data register.
 
-i2c.Start(scl_pin)
-i2c.Write(scl_pin, $D1)
-GX := i2c.Read(scl_pin, 0)
-GX <-= 8
-GX := GX + i2c.Read(scl_pin, 0)
-GY := i2c.Read(scl_pin, 0)
-GY <-= 8
-GY := GY + i2c.Read(scl_pin, 0)
-GZ := i2c.Read(scl_pin, 0)
-GZ <-= 8
-GZ := GZ + i2c.Read(scl_pin, 1)//Final ACK bit set to 1, end read cycle
-i2c.Stop(SCL)
+	i2cWrite(&driver->i2c, GYRO_ADR, out, 1, 1);
+	i2cRead(&driver->i2c, GYRO_ADR, in, 6, 1);
 
-GyroX := GX
-GyroY := GY
-GyroZ := GZ
-
+	/*
+	 * The gyro stores values in big-endian and xyz order.
+	 * Conversions must be done.
+	 */
+	gyro[0] = convert(in); //x
+	gyro[1] = convert(&in[2]); //y
+	gyro[2] = convert(&in[4]); //z
 }
