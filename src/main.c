@@ -88,11 +88,15 @@ static void setupSensors()
  */
 static int16_t convert(uint8_t *raw)
 {
-	uint8_t temp[2];
-	temp[0] = raw[1];
-	temp[1] = raw[0];
+	union
+	{
+		uint8_t bytes[2];
+		int16_t value;
+	} temp;
+	temp.bytes[0] = raw[1];
+	temp.bytes[1] = raw[0];
 
-	return (int16_t) temp[0];
+	return temp.value;
 }
 
 static void readSensors()
@@ -110,8 +114,7 @@ static void readSensors()
 	//register value automatically incremented to 0x03
 
 	//write 2 bytes to the compass
-	//TODO: see if the write (and others) can be done without stop
-	i2cWrite(&driver->i2c, COMP_ADR, out, 2, 1);
+	i2cWrite(&driver->i2c, COMP_ADR, out, 2, 0);
 	i2cRead(&driver->i2c, COMP_ADR, in, 6, 1);
 
 	/*
@@ -126,7 +129,7 @@ static void readSensors()
 
 	out[0] = 0x32; //first data register
 
-	i2cWrite(&driver->i2c, ACC_ADR, out, 1, 1);
+	i2cWrite(&driver->i2c, ACC_ADR, out, 1, 0);
 	i2cRead(&driver->i2c, ACC_ADR, in, 6, 1);
 
 	/*
@@ -142,7 +145,7 @@ static void readSensors()
 
 	out[0] = 0x1d; //first data register.
 
-	i2cWrite(&driver->i2c, GYRO_ADR, out, 1, 1);
+	i2cWrite(&driver->i2c, GYRO_ADR, out, 1, 0);
 	i2cRead(&driver->i2c, GYRO_ADR, in, 6, 1);
 
 	/*
