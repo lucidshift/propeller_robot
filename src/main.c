@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <i2c.h>
+#include <time.h>
+#include <limits.h>
 
 #define SCL_PIN 28
 #define SDA_PIN 29
 #define COMP_ADR 0x3C
 #define ACC_ADR 0xA6
 #define GYRO_ADR 0xD0
+
+#define COMP_DIVISOR 1370
 
 static void printVectorLine(char* name, int16_t *arr);
 static void setupSensors();
@@ -19,17 +23,38 @@ int16_t *comp, *acc, *gyro;
 int main(int args, char *argv[], char *environ[])
 {
 	driver = (I2C_COGDRIVER*) malloc(sizeof(I2C_COGDRIVER));
-	i2cOpen(driver, SCL_PIN, SDA_PIN, 100000);
+	i2cOpen(driver, SCL_PIN, SDA_PIN, 400000);
 
 	comp = (int16_t*) malloc(3 * sizeof(int16_t));
 	acc = (int16_t*) malloc(3 * sizeof(int16_t));
 	gyro = (int16_t*) malloc(3 * sizeof(int16_t));
 
+	clock_t start;
+	clock_t end;
+	clock_t elapsed;
+	clock_t time;
+
 	setupSensors();
-	
+
 	while (1)
 	{
+		start = clock();
 		readSensors();
+		end = clock();
+
+		if (end > start)
+		{
+			elapsed = end - start;
+		}
+		else
+		{
+			elapsed = end + (UINT_MAX - start);
+		}
+
+		time = elapsed;
+		time /= 4000;
+
+		printf("%-*s: %d ms\n", 15, "time", time);
 
 		printVectorLine("compass", comp);
 		printVectorLine("accelerometer", acc);
@@ -51,7 +76,7 @@ static void setupSensors()
 
 	//TODO: consider averaging values
 	//TODO: possibly use default settings
-	out[0] = 0x00; //Configuration Register B
+	out[0] = 0x00; //Configuration Register A
 	out[1] = 0x18; //75Hz, Normal measurement
 	//register value automatically incremented to 0x01
 	out[2] = 0x00; //range of +/- 0.88Ga
