@@ -7,10 +7,12 @@
 #define SCL_PIN 28
 #define SDA_PIN 29
 #define COMP_ADR 0x3C
-#define ACC_ADR 0xA6
+#define ACC_ADR  0xA6
 #define GYRO_ADR 0xD0
 
 #define COMP_DIVISOR 1370
+#define ACC_DIVISOR  32
+#define GYRO_DIVISOR 14.375
 
 static void printVectorLine(char* name, int16_t *arr);
 static void setupSensors();
@@ -31,8 +33,8 @@ int main(int args, char *argv[], char *environ[])
 
 	clock_t start;
 	clock_t end;
-	clock_t elapsed;
-	clock_t time;
+	clock_t cyclesElapsed;
+	clock_t timeElapsed;
 
 	setupSensors();
 
@@ -44,17 +46,17 @@ int main(int args, char *argv[], char *environ[])
 
 		if (end > start)
 		{
-			elapsed = end - start;
+			cyclesElapsed = end - start;
 		}
 		else
 		{
-			elapsed = end + (UINT_MAX - start);
+			cyclesElapsed = end + (UINT_MAX - start);
 		}
 
-		time = elapsed;
-		time /= 4000;
+		timeElapsed = cyclesElapsed;
+		timeElapsed /= 4000;
 
-		printf("%-*s: %d ms\n", 15, "time", time);
+		printf("%-*s: %d ms\n", 15, "time", timeElapsed);
 
 		printVectorLine("compass", comp);
 		printVectorLine("accelerometer", acc);
@@ -124,6 +126,7 @@ static int16_t convert(uint8_t *raw)
 	return temp.value;
 }
 
+//compass: 6 ms, acc and gyro: each 5 ms
 static void readSensors()
 {
 	uint8_t out[10];
