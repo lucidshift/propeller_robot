@@ -1,2 +1,33 @@
-propeller_robot
+Propeller Robot Project
 ===============
+
+Status
+---------------
+Currently, sensor input works but the actual positioning part is non-functional. A simple serial interface is also functional. More tests need to be conducted on the system as a whole.
+
+Compiling and Running
+---------------
+The necessary tools are available on <https://sites.google.com/site/propellergcc/>. Everything is available for Linux. To use the command line tools to compile, just use the make script in the main project directory with `make all`. Right now, this requires that the install path to the propeller resources to be at `/opt/parallax/`. The compiliation will result in a `main.elf` file in the bin directory, as well as a few other objects.
+
+To load the elf onto the propeller EEPROM, use `/opt/parallax/bin/propeller-load -e -r -t bin/main.elf`, substituting the correct paths if necessary. This will also run the program ('-r') and open a run a serial terminal ('-t'). Both of these flags can be omitted if desired. The EEPROM flag ('-e') may also be omitted, which will write the program into main memory instead of EEPROM.
+
+Interface
+---------------
+The propeller ouputs raw sensor data on its usb serial interface at 115200 baud. For example, using the command `cu -l dev/ttyUSB0/ -s 115200` (asuming your propeller is connected to `ttyUSB0` and is running `main.elf`) will get you something like following output over and over:
+
+	compass        : <-0.129351, -0.133181, -0.982546>
+	accelerometer  : <-0.054406, 0.253893, 0.965701>
+	gyrometer      : <-712.353027, -3007.712647, -78121.382813>
+	dcm            : [<-0.786063, -0.617372, 0.030938> <0.999560, 0.027842, -0.010188> <0.000000, 0.000000, 0.000000>]
+	...
+
+The script called `extract` in the main project folder will extract the values from a given field matching the first argument. For example, piping the output of the last step into `extract gyro` will output something like this:
+
+	-712.353027 -3007.712647 -78121.382813
+	...
+
+If saved, this forms a nice matrix which can be easily imported into octave and plotted. To make a plot in octave, run `octave` and type the following command:
+
+	plot(load("<your file name here>"))
+
+A 3d visualization is in the works for the dcm output. Right now, dcm is disabled as it does not work anyway. The output will be all zeros.
