@@ -21,7 +21,7 @@ The propeller ouputs raw sensor data on its usb serial interface at 115200 baud.
 	dcm            : [<-0.786063, -0.617372, 0.030938> <0.999560, 0.027842, -0.010188> <0.000000, 0.000000, 0.000000>]
 	...
 
-The script called `extract` in the main project folder will extract the values from a given field matching the first argument. For example, piping the output of the last step into `extract gyro` will output something like this:
+The script called `extract` in the main project folder will extract the values from a given field matching the first argument. For example, piping the output of the last step into `./extract gyro` will output something like this:
 
 	-712.353027 -3007.712647 -78121.382813
 	...
