@@ -3,6 +3,7 @@
 #include <i2c.h>
 #include <time.h>
 #include <limits.h>
+#include <imu.h>
 
 #define SCL_PIN 28
 #define SDA_PIN 29
@@ -10,64 +11,78 @@
 #define ACC_ADR  0xA6
 #define GYRO_ADR 0xD0
 
-#define COMP_DIVISOR 1370
-#define ACC_DIVISOR  32
-#define GYRO_DIVISOR 14.375
-
-static void printVectorLine(char* name, int16_t *arr);
+#define COMP_DIVISOR 1370.0  //LSB/gauss
+#define ACC_DIVISOR  32.0    //LSB/g
+#define GYRO_DIVISOR 14.375  //LSB/degrees per second
+static void printVectorLine(char* name, float *arr);
+static void printMatrixLine(char* name, float matrix[3][3]);
 static void setupSensors();
 static void readSensors();
 static int16_t convert(uint8_t *raw);
 
 I2C_COGDRIVER *driver;
-int16_t *comp, *acc, *gyro;
+float *comp, *acc, *gyro;
 
 int main(int args, char *argv[], char *environ[])
 {
 	driver = (I2C_COGDRIVER*) malloc(sizeof(I2C_COGDRIVER));
 	i2cOpen(driver, SCL_PIN, SDA_PIN, 400000);
 
-	comp = (int16_t*) malloc(3 * sizeof(int16_t));
-	acc = (int16_t*) malloc(3 * sizeof(int16_t));
-	gyro = (int16_t*) malloc(3 * sizeof(int16_t));
+	comp = (float*) malloc(3 * sizeof(float));
+	acc = (float*) malloc(3 * sizeof(float));
+	gyro = (float*) malloc(3 * sizeof(float));
 
-	clock_t start;
-	clock_t end;
+	clock_t previous;
+	clock_t current;
 	clock_t cyclesElapsed;
-	clock_t timeElapsed;
+	time_ms timeElapsed;
 
 	setupSensors();
 
+	previous = clock();
+
 	while (1)
 	{
-		start = clock();
 		readSensors();
-		end = clock();
+		current = clock();
 
-		if (end > start)
+		if (current > previous)
 		{
-			cyclesElapsed = end - start;
+			cyclesElapsed = current - previous;
 		}
 		else
 		{
-			cyclesElapsed = end + (UINT_MAX - start);
+			cyclesElapsed = current + (UINT_MAX - previous);
 		}
 
-		timeElapsed = cyclesElapsed;
+		timeElapsed = (time_ms) cyclesElapsed;
 		timeElapsed /= 4000;
 
-		printf("%-*s: %d ms\n", 15, "time", timeElapsed);
+		//imu_update(timeElapsed, acc, comp, gyro);
 
 		printVectorLine("compass", comp);
 		printVectorLine("accelerometer", acc);
 		printVectorLine("gyrometer", gyro);
+		printMatrixLine("dcm", dcmEst);
+
+		previous = current;
 	}
 	return 0;
 }
 
-static void printVectorLine(char* name, int16_t *arr)
+static void printVectorLine(char* name, float *arr)
 {
-	printf("%-*s: <%d, %d, %d>\n", 15, name, arr[0], arr[1], arr[2]);
+	printf("%-*s: <%f, %f, %f>\n", 15, name, (double) arr[0], (double) arr[1], (double) arr[2]);
+}
+
+static void printMatrixLine(char* name, float matrix[3][3])
+{
+	//TODO: revise this
+	printf("%-*s: [<%f, %f, %f> <%f, %f, %f> <%f, %f, %f>]\n", 15, name,
+			(double) matrix[0][0], (double) matrix[0][1], (double) matrix[0][2],
+			(double) matrix[1][0], (double) matrix[1][1], (double) matrix[1][2],
+			(double) matrix[2][0], (double) matrix[2][1],
+			(double) matrix[2][2]);
 }
 
 static void setupSensors()
@@ -149,9 +164,9 @@ static void readSensors()
 	 * The compass stores values in big-endian and in xzy order.
 	 * Conversions must be done.
 	 */
-	comp[0] = convert(in); //x
-	comp[1] = convert(&in[4]); //y
-	comp[2] = convert(&in[2]); //z
+	comp[0] = (float) convert(in); //x
+	comp[1] = (float) convert(&in[4]); //y
+	comp[2] = (float) convert(&in[2]); //z
 
 	//Read Accelerometer
 
@@ -166,7 +181,8 @@ static void readSensors()
 	 */
 	for (i = 0; i < 3; i++)
 	{
-		acc[i] = (int8_t) in[2 * i];
+		//TODO: check this over..
+		acc[i] = (float) *((int16_t*) &in[2 * i]);
 	}
 
 	//Read Gyro
@@ -180,7 +196,15 @@ static void readSensors()
 	 * The gyro stores values in big-endian and xyz order.
 	 * Conversions must be done.
 	 */
-	gyro[0] = convert(in); //x
-	gyro[1] = convert(&in[2]); //y
-	gyro[2] = convert(&in[4]); //z
+	gyro[0] = (float) convert(in); //x
+	gyro[1] = (float) convert(&in[2]); //y
+	gyro[2] = (float) convert(&in[4]); //z
+
+	//convert to actual units
+	for (i = 0; i < 3; i++)
+	{
+		comp[i] /= COMP_DIVISOR;
+		acc[i] /= ACC_DIVISOR;
+		gyro[i] /= GYRO_DIVISOR;
+	}
 }

@@ -16,3 +16,6 @@ bin
 *.exe
 *.out
 *.app
+
+# Others
+raw/

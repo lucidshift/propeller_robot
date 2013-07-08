@@ -7,18 +7,10 @@ float dcmEst[3][3] =
 { 0, 1, 0 },
 { 0, 0, 1 } }; //estimated DCM matrix
 
-time_ms previous_time;
-
-void imu_init(time_ms time)
-{
-	previous_time = time;
-}
-
-void imu_update(time_ms time, float accelerometer[], float magnetometer[],
-		float gyrometer[])
+void imu_update(time_ms elapsed_time, float *accelerometer, float *magnetometer,
+		float *gyrometer)
 {
 	float Imag[3]; //I(b) vector according to magnetometer in body's coordinates
-	float elapsed_time = (time - previous_time)/1000;
 	int i;
 
 	//---------------
@@ -55,7 +47,7 @@ void imu_update(time_ms time, float accelerometer[], float magnetometer[],
 	//---------------
 	//dcmEst
 	//---------------
-	//gyro rate direction is usually specified (in datasheets) as the device's(body's) rotation
+	//gyro rate direction is usually specified (in datasheets) as the device's (body's) rotation
 	//about a fixed earth's (global) frame, if we look from the perspective of device then
 	//the global vectors (I,K,J) rotation direction will be the inverse
 
@@ -63,7 +55,8 @@ void imu_update(time_ms time, float accelerometer[], float magnetometer[],
 	{
 		gyrometer[i] *= elapsed_time; //scale by elapsed time to get angle in radians
 		//compute weighted average with the accelerometer correction vector
-		gyrometer[i] = (gyrometer[i] + ACC_WEIGHT * wA[i] + MAG_WEIGHT * magnetometer[i])
+		gyrometer[i] = (gyrometer[i] + ACC_WEIGHT * wA[i]
+				+ MAG_WEIGHT * magnetometer[i])
 				/ (1.0 + ACC_WEIGHT + MAG_WEIGHT);
 	}
 

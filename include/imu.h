@@ -14,9 +14,15 @@
 //when error exceeds this value magnetometer weight becomes 0
 //this helps reject magnetic forces that are not attributed to earth's magnetic field
 
-typedef long time_ms;
+typedef float time_ms;
 
-void imu_update(time_ms time, float accelerometer[], float magnetometer[],
-		float gyrometer[]);
+float dcmEst[3][3];
+
+void imu_update(time_ms time, float *accelerometer, float *magnetometer,
+		float *gyrometer);
+
+void dcm_rotate(float dcm[3][3], float w[3]);
+
+void dcm_orthonormalize(float dcm[3][3]);
 
 #endif
