@@ -26,6 +26,6 @@ The script called `extract` in the main project folder will extract the values f
 	-712.353027 -3007.712647 -78121.382813
 	...
 
-If saved, this forms a nice matrix which can be easily imported into octave and plotted. To make a plot in octave, run `octave` and type the following command `plot(load("<your file name here>"))`. This will result in a plot with a different series for each sensor axis.
+If saved, this forms a nice matrix which can be easily imported into octave and plotted. To make a plot in octave, run `octave` and type the following command `plot(load("<your file name here>"))`. This will result in a graph with a different series for each sensor axis.
 
 A 3d visualization is in the works for the dcm output. Right now, dcm is disabled as it does not work anyway. The output will be all zeros.
